@@ -2,3 +2,5 @@ build/
 dist/
 pyuci.egg-info/
 __pycache__/
+venv/
+.coverage
