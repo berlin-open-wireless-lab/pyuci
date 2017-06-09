@@ -17,6 +17,86 @@ class UciNotFoundError(UciError):
 class UciParseError(UciError):
     pass
 
+class Diff(dict):
+    """ class providing diffs on Config objects """
+
+    def __init__(self):
+        """ initialize instance """
+        self['newpackages'] = {}
+        self['newconfigs'] = {}
+        self['oldpackages'] = {}
+        self['oldconfigs'] = {}
+        self['newOptions'] = {}
+        self['oldOptions'] = {}
+        self['chaOptions'] = {}
+
+    def fromJson(self, jsonString):
+        """ generate diff object from a json string """
+        # TODO: not yet implemented
+        pass
+
+    def exportJson(self):
+        """ export diff object to a json string """
+        # TODO: not yet implemented
+        pass
+
+    def diff(self, UciOld, UciNew):
+        """ generate a diff between UciOld and UciNew """
+        # find new package keys
+        for key in UciNew.packages.keys():
+            if not (key in UciOld.packages.keys()):
+                self['newpackages'][key] = UciNew.packages[key]
+            else:
+                oldPackage = UciOld.packages[key]
+                newPackage = UciNew.packages[key]
+
+                self.diffPackage(oldPackage, newPackage)
+
+        # find old packages and configs
+        for packageName, package in UciOld.packages.items():
+            if not (packageName in UciNew.packages.keys()):
+                self['oldpackages'][packageName] = package
+            else:
+                newPackage = UciNew.packages[packageName]
+                for confName, conf in package.items():
+                    if not (confName in newPackage.keys()):
+                        self['oldconfigs'][(packageName, confName)] = conf
+
+        return self
+
+    def diffPackage(self, oldPackage, newPackage):
+        """ generate a diff between oldPackage and newPackage """
+        for confkey in newPackage.keys():
+            if not (confkey in oldPackage.keys()):
+                indexTuple = (newPackage.name, confkey)
+                self['newconfigs'][indexTuple] = newPackage[confkey]
+            else:
+                oldConfig = oldPackage[confkey]
+                newConfig = newPackage[confkey]
+                packageName = newPackage.name
+
+                self.diffConfig(oldConfig, newConfig, packageName)
+
+    def diffConfig(self, oldConfig, newConfig, packageName):
+        """ diff two configurations """
+        newOptions = newConfig.export_dict(forjson=True)
+        oldOptions = oldConfig.export_dict(forjson=True)
+
+        for option_key, option_value in newOptions.items():
+            indexTuple = (packageName, newConfig.name, option_key)
+
+            if not (option_key in oldOptions.keys()):
+                self['newOptions'][indexTuple] = option_value
+            else:
+                if option_value != oldOptions[option_key]:
+                    optionTuple = (oldOptions[option_key], option_value)
+                    self['chaOptions'][indexTuple] = optionTuple
+
+        for option_key, option_value in oldOptions.items():
+            indexTuple = (packageName, newConfig.name, option_key)
+            if not (option_key in newOptions.keys()):
+                self['oldOptions'][indexTuple] = option_value
+
 class Config(object):
     def __init__(self, uci_type, name, anon):
         self.uci_type = uci_type
@@ -147,52 +227,7 @@ class Uci(object):
         return "".join(export)
 
     def diff(self, new):
-        new_packages    = {}
-        new_configs     = {}
-        old_packages    = {}
-        old_configs     = {}
-        new_keys        = {}
-        old_keys        = {}
-        changed_keys    = {}
-
-        # find new package keys
-        for key in new.packages.keys():
-            if not (key in self.packages.keys()):
-                new_packages[key] = new.packages[key]
-            else:
-                for confkey in new.packages[key].keys():
-                    if not (confkey in self.packages[key].keys()):
-                        new_configs[(key, confkey)] = new.packages[key][confkey]
-                    else:
-                        new_options = new.packages[key][confkey].export_dict(forjson=True)
-                        old_options = self.packages[key][confkey].export_dict(forjson=True)
-                        for option_key, option_value in new_options.items():
-                            if not (option_key in old_options.keys()):
-                                new_keys[(key, confkey, option_key)]=option_value
-                            else:
-                                if option_value != old_options[option_key]:
-                                    changed_keys[(key, confkey, option_key)] =\
-                                        (old_options[option_key],option_value)
-                        for option_key, option_value in old_options.items():
-                            if not (option_key in new_options.keys()):
-                                old_keys[(key, confkey, option_key)]=option_value
-
-        # find old package keys
-        for key in self.packages.keys():
-            if not (key in new.packages.keys()):
-                old_packages[key] = self.packages[key]
-            else:
-                for confkey in self.packages[key].keys():
-                    if not (confkey in new.packages[key].keys()):
-                        old_configs[(key, confkey)] = self.packages[key][confkey]
-
-        return {'newpackages':  new_packages,
-                'newconfigs':   new_configs,
-                'oldpackages':  old_packages,
-                'oldconfigs':   old_configs,
-                'newOptions':   new_keys,
-                'oldOptions':   old_keys,
-                'chaOptions':   changed_keys}
+        return Diff().diff(self, new)
 
     def load_tree(self, export_tree_string):
         cur_package = None
