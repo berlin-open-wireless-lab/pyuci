@@ -30,15 +30,86 @@ class Diff(dict):
         self['oldOptions'] = {}
         self['chaOptions'] = {}
 
-    def fromJson(self, jsonString):
+    def importJson(self, jsonString):
         """ generate diff object from a json string """
-        # TODO: not yet implemented
-        pass
+        importDict = json.loads(jsonString)
+        
+        self.importPackage(importDict['newpackages'], 'newpackages')
+        self.importPackage(importDict['oldpackages'], 'oldpackages')
+
+        self.importConfig(importDict['newconfigs'], 'newconfigs')
+        self.importConfig(importDict['oldconfigs'], 'oldconfigs')
+
+        self.importOptions(importDict['newOptions'], 'newOptions')
+        self.importOptions(importDict['oldOptions'], 'oldOptions')
+        self.importOptions(importDict['chaOptions'], 'chaOptions')
+
+    def importPackage(self, packageDict, importTo):
+        for packageName, package in packageDict.items():
+            curPackage = Package(packageName)
+            curPackage.importDictFromJson(package)
+            self[importTo][packageName] = curPackage
+
+    def importConfig(self, confDict, importTo):
+        for confName, confData in confDict.items():
+            indexTuple = (confData['package'], confName)
+            confValue = confData['value']
+            config = Config(confValue.pop('.type'), confValue.pop('.name'), confValue.pop(".anonymous"))
+            config.keys = confValue
+            self[importTo][indexTuple] = config
+
+    def importOptions(self, optDict, importTo):
+        for optName, optData in optDict.items():
+            indexTuple = (optData['package'], optData['config'], optName)
+
+            # if it is a changed option treat values as a tuple (there is no tuple in json!)
+            if importTo == 'chaOptions':
+                self[importTo][indexTuple] = (optData['value'][0], optData['value'][1])
+            else:
+                self[importTo][indexTuple] = optData['value']
 
     def exportJson(self):
         """ export diff object to a json string """
-        # TODO: not yet implemented
-        pass
+        export = {}
+        export['newpackages'] = {}
+        export['oldpackages'] = {}
+
+        for packageName, package in self['newpackages'].items():
+            export['newpackages'][packageName] = package.exportDictForJson()
+
+        for packageName, package in self['oldpackages'].items():
+            export['oldpackages'][packageName] = package.exportDictForJson()
+
+        export['newconfigs'] = self.exportConfigJson(self['newconfigs'])
+        export['oldconfigs'] = self.exportConfigJson(self['oldconfigs'])
+
+        export['newOptions'] = self.exportOptions(self['newOptions'])
+        export['oldOptions'] = self.exportOptions(self['oldOptions'])
+        export['chaOptions'] = self.exportOptions(self['chaOptions'])
+
+        return json.dumps(export)
+
+    def exportConfigJson(self, confDict):
+        export = {}
+        for confIndex, config in confDict.items():
+            packageName = confIndex[0]
+            configName = confIndex[1]
+            export[configName] = {}
+            export[configName]['value'] = config.export_dict(forjson=True)
+            export[configName]['package'] = packageName
+        return export
+
+    def exportOptions(self, optDict):
+        export = {}
+        for optIndex, value in optDict.items():
+            packageName = optIndex[0]
+            configName = optIndex[1]
+            optionName = optIndex[2]
+            export[optionName] = {}
+            export[optionName]['value'] = value
+            export[optionName]['package'] = packageName
+            export[optionName]['config'] = configName
+        return export
 
     def diff(self, UciOld, UciNew):
         """ generate a diff between UciOld and UciNew """
@@ -172,6 +243,14 @@ class Config(object):
     def __repr__(self):
         return "Config[%s:%s] %s" % (self.uci_type, self.name, repr(self.keys))
 
+    def __eq__(self, other):
+        isEqual = True
+        isEqual = isEqual and (self.name == other.name)
+        isEqual = isEqual and (self.anon == other.anon)
+        isEqual = isEqual and (self.keys == other.keys)
+
+        return isEqual
+
 class Package(dict):
     def __init__(self, name):
         super().__init__()
@@ -179,21 +258,31 @@ class Package(dict):
 
     def add_config(self, config):
         self[config.name] = config
+
     def add_config_json(self, config):
-        anon = config.pop(".anonymous")
-        cur_config = Config(config.pop('.type'), config.pop('.name'),anon=='true')
+        cur_config = Config(config.pop('.type'), config.pop('.name'), config.pop(".anonymous"))
+        cur_config.keys = config
         self.add_config(cur_config)
-        # TODO: find out if the following is still necessary
-        for key in config.keys():
-            if isinstance(config[key],str):
-                try:
-                    config[key] = config[key].replace("'",'"')
-                    newval = json.loads(config[key])
-                except ValueError:
-                    newval = config[key]
-                config[key] = newval
-            cur_config.set_option(key,config[key])
         return cur_config
+    
+    def exportDictForJson(self):
+        export={}
+        export['values'] = {}
+        for configname, config in self.items():
+            export['values'][config.name] =\
+                config.export_dict(forjson=True)
+        return export
+
+    def importDictFromJson(self, confDict):
+        for confName, conf in confDict['values'].items():
+            self.add_config_json(conf)
+
+    def __eq__(self, other):
+        isEqual = True
+        isEqual = isEqual and (self.name == other.name)
+        isEqual = isEqual and super().__eq__(other)
+
+        return isEqual
 
 class Uci(object):
     logger = logging.getLogger('uci')
@@ -240,6 +329,7 @@ class Uci(object):
             for config in export_tree[package]['values']:
                 config = export_tree[package]['values'][config]
                 cur_package.add_config_json(config)
+
     def export_json(self):
         export={}
         for packagename, package in self.packages.items():
