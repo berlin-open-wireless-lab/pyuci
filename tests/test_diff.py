@@ -1,7 +1,7 @@
 from pyuci import Uci, Diff
 import os.path
 import unittest
-
+import json
 
 class TestSetup(unittest.TestCase):
     def setUp(self):
@@ -42,7 +42,10 @@ class TestSetup(unittest.TestCase):
         self.assertEqual(result['chaOptions'], {})
 
         jsonExport = result.exportJson()
-        expected = '{"newpackages": {"dhcp": {"values": {"wan": {".name": "wan", ".type": "dhcp", ".anonymous": "false", "ignore": "1", ".index": 2, "interface": "wan"}, "cfg02411c": {".name": "cfg02411c", ".type": "dnsmasq", ".anonymous": "true", "resolvfile": "/tmp/resolv.conf.auto", "filterwin2k": "0", "rebind_localhost": "1", "domain": "lan", "expandhosts": "1", "localise_queries": "1", ".index": 0, "readethers": "1", "authoritative": "1", "local": "/lan/", "rebind_protection": "1", "domainneeded": "1", "leasefile": "/tmp/dhcp.leases", "boguspriv": "1", "nonegcache": "0"}, "odhcpd": {".name": "odhcpd", ".type": "odhcpd", ".anonymous": "false", "maindhcp": "0", ".index": 3, "leasefile": "/tmp/hosts/odhcpd", "leasetrigger": "/usr/sbin/odhcpd-update"}, "lan": {".name": "lan", ".type": "dhcp", ".anonymous": "false", ".index": 1, "start": "100", "ra": "server", "interface": "lan", "leasetime": "12h", "dhcpv6": "server", "limit": "150"}}}}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
+        packageJsonString = json.dumps(self.confb.packages[removed_key].exportDictForJson())
+        expected = '{"newpackages": '
+        expected += '{"' + removed_key + '": ' + packageJsonString + '}'
+        expected += ', "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
         self.assertEqual(jsonExport, expected)
         importTest = Diff()
         importTest.importJson(jsonExport)
@@ -60,8 +63,11 @@ class TestSetup(unittest.TestCase):
         self.assertEqual(result['oldOptions'], {})
         self.assertEqual(result['chaOptions'], {})
 
+        packageJsonString = json.dumps(self.confa.packages[removed_key].exportDictForJson())
+        expected = '{"newpackages": {}, "oldpackages": '
+        expected += '{"' + removed_key + '": ' + packageJsonString + '}'
+        expected += ', "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
         jsonExport = result.exportJson()
-        expected = '{"newpackages": {}, "oldpackages": {"dhcp": {"values": {"wan": {".name": "wan", ".type": "dhcp", ".anonymous": "false", "ignore": "1", ".index": 2, "interface": "wan"}, "cfg02411c": {".name": "cfg02411c", ".type": "dnsmasq", ".anonymous": "true", "resolvfile": "/tmp/resolv.conf.auto", "filterwin2k": "0", "rebind_localhost": "1", "domain": "lan", "expandhosts": "1", "localise_queries": "1", ".index": 0, "readethers": "1", "authoritative": "1", "local": "/lan/", "rebind_protection": "1", "domainneeded": "1", "leasefile": "/tmp/dhcp.leases", "boguspriv": "1", "nonegcache": "0"}, "odhcpd": {".name": "odhcpd", ".type": "odhcpd", ".anonymous": "false", "maindhcp": "0", ".index": 3, "leasefile": "/tmp/hosts/odhcpd", "leasetrigger": "/usr/sbin/odhcpd-update"}, "lan": {".name": "lan", ".type": "dhcp", ".anonymous": "false", ".index": 1, "start": "100", "ra": "server", "interface": "lan", "leasetime": "12h", "dhcpv6": "server", "limit": "150"}}}}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
         self.assertEqual(jsonExport, expected)
         importTest = Diff()
         importTest.importJson(jsonExport)
@@ -73,7 +79,7 @@ class TestSetup(unittest.TestCase):
         self.confa.packages[removed_key].pop(removed_conf)
         result = self.confa.diff(self.confb)
         self.assertEqual(result['newpackages'], {})
-        self.assertEqual(result['newconfigs'], {(removed_key, removed_conf): self.confb.packages[removed_key] [removed_conf]})
+        self.assertEqual(result['newconfigs'], {(removed_key, removed_conf): self.confb.packages[removed_key][removed_conf]})
         self.assertEqual(result['oldpackages'], {})
         self.assertEqual(result['oldconfigs'], {})
         self.assertEqual(result['newOptions'], {})
@@ -81,7 +87,10 @@ class TestSetup(unittest.TestCase):
         self.assertEqual(result['chaOptions'], {})
 
         jsonExport = result.exportJson()
-        expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {"wan": {"value": {".name": "wan", ".type": "dhcp", ".anonymous": "false", "ignore": "1", ".index": 2, "interface": "wan"}, "package": "dhcp"}}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
+        configJsonString = json.dumps(self.confb.packages[removed_key][removed_conf].export_dict(forjson=True))
+        expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": '
+        expected += '{"' + removed_conf + '": {"value": ' + configJsonString + ', "package": "' + removed_key + '"}}'
+        expected += ', "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
         self.assertEqual(jsonExport, expected)
         importTest = Diff()
         importTest.importJson(jsonExport)
@@ -101,7 +110,10 @@ class TestSetup(unittest.TestCase):
         self.assertEqual(result['chaOptions'], {})
 
         jsonExport = result.exportJson()
-        expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {"wan": {"value": {".name": "wan", ".type": "dhcp", ".anonymous": "false", "ignore": "1", ".index": 2, "interface": "wan"}, "package": "dhcp"}}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
+        configJsonString = json.dumps(self.confa.packages[removed_key][removed_conf].export_dict(forjson=True))
+        expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": '
+        expected += '{"' + removed_conf + '": {"value": ' + configJsonString + ', "package": "' + removed_key + '"}}'
+        expected += ', "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
         self.assertEqual(jsonExport, expected)
         importTest = Diff()
         importTest.importJson(jsonExport)
@@ -125,7 +137,10 @@ class TestSetup(unittest.TestCase):
         self.assertEqual(result['newOptions'], removed_option_dict)
 
         jsonExport = result.exportJson()
-        expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {"ignore": {"value": "1", "package": "dhcp", "config": "wan"}}, "oldOptions": {}, "chaOptions": {}}'
+        removedOptVal = removed_option_dict[(removed_key, removed_conf, removed_option)]
+        expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {"'
+        expected += removed_option+ '": {"value": "' + removedOptVal + '", "package": "' + removed_key + '", "config": "' + removed_conf + '"'
+        expected += '}}, "oldOptions": {}, "chaOptions": {}}'
         self.assertEqual(jsonExport, expected)
         importTest = Diff()
         importTest.importJson(jsonExport)
@@ -149,7 +164,10 @@ class TestSetup(unittest.TestCase):
         self.assertEqual(result['oldOptions'], removed_option_dict)
 
         jsonExport = result.exportJson()
-        expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {"ignore": {"value": "1", "package": "dhcp", "config": "wan"}}, "chaOptions": {}}'
+        removedOptVal = removed_option_dict[(removed_key, removed_conf, removed_option)]
+        expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {"'
+        expected += removed_option+ '": {"value": "' + removedOptVal + '", "package": "' + removed_key + '", "config": "' + removed_conf + '"'
+        expected += '}}, "chaOptions": {}}'
         self.assertEqual(jsonExport, expected)
         importTest = Diff()
         importTest.importJson(jsonExport)
@@ -178,7 +196,10 @@ class TestSetup(unittest.TestCase):
         self.assertEqual(result['chaOptions'], removed_option_dict)
 
         jsonExport = result.exportJson()
-        expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {"ignore": {"value": ["1", "1changed"], "package": "dhcp", "config": "wan"}}}'
+        removedOptVal = removed_option_dict[(removed_key, removed_conf, removed_option)]
+        expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {"'
+        expected += removed_option + '": {"value": ' + json.dumps(removedOptVal) + ', "package": "' + removed_key + '", "config": "' + removed_conf + '"'
+        expected += '}}}'
         self.assertEqual(jsonExport, expected)
         importTest = Diff()
         importTest.importJson(jsonExport)
