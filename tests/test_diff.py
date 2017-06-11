@@ -24,7 +24,7 @@ class TestSetup(unittest.TestCase):
         self.assertEqual(result['chaOptions'], {})
 
         jsonExport = result.exportJson()
-        self.assertEqual(jsonExport, '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}')
+        self.assertEqual(json.loads(jsonExport), json.loads('{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'))
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
