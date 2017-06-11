@@ -46,7 +46,7 @@ class TestSetup(unittest.TestCase):
         expected = '{"newpackages": '
         expected += '{"' + removed_key + '": ' + packageJsonString + '}'
         expected += ', "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
-        self.assertEqual(jsonExport, expected)
+        self.assertEqual(json.loads(jsonExport), json.loads(expected))
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
@@ -68,7 +68,7 @@ class TestSetup(unittest.TestCase):
         expected += '{"' + removed_key + '": ' + packageJsonString + '}'
         expected += ', "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
         jsonExport = result.exportJson()
-        self.assertEqual(jsonExport, expected)
+        self.assertEqual(json.loads(jsonExport), json.loads(expected))
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
@@ -91,7 +91,7 @@ class TestSetup(unittest.TestCase):
         expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": '
         expected += '{"' + removed_conf + '": {"value": ' + configJsonString + ', "package": "' + removed_key + '"}}'
         expected += ', "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
-        self.assertEqual(jsonExport, expected)
+        self.assertEqual(json.loads(jsonExport), json.loads(expected))
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
@@ -114,7 +114,7 @@ class TestSetup(unittest.TestCase):
         expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": '
         expected += '{"' + removed_conf + '": {"value": ' + configJsonString + ', "package": "' + removed_key + '"}}'
         expected += ', "newOptions": {}, "oldOptions": {}, "chaOptions": {}}'
-        self.assertEqual(jsonExport, expected)
+        self.assertEqual(json.loads(jsonExport), json.loads(expected))
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
@@ -141,7 +141,7 @@ class TestSetup(unittest.TestCase):
         expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {"'
         expected += removed_option+ '": {"value": "' + removedOptVal + '", "package": "' + removed_key + '", "config": "' + removed_conf + '"'
         expected += '}}, "oldOptions": {}, "chaOptions": {}}'
-        self.assertEqual(jsonExport, expected)
+        self.assertEqual(json.loads(jsonExport), json.loads(expected))
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
@@ -168,7 +168,7 @@ class TestSetup(unittest.TestCase):
         expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {"'
         expected += removed_option+ '": {"value": "' + removedOptVal + '", "package": "' + removed_key + '", "config": "' + removed_conf + '"'
         expected += '}}, "chaOptions": {}}'
-        self.assertEqual(jsonExport, expected)
+        self.assertEqual(json.loads(jsonExport), json.loads(expected))
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
@@ -200,7 +200,7 @@ class TestSetup(unittest.TestCase):
         expected = '{"newpackages": {}, "oldpackages": {}, "newconfigs": {}, "oldconfigs": {}, "newOptions": {}, "oldOptions": {}, "chaOptions": {"'
         expected += removed_option + '": {"value": ' + json.dumps(removedOptVal) + ', "package": "' + removed_key + '", "config": "' + removed_conf + '"'
         expected += '}}}'
-        self.assertEqual(jsonExport, expected)
+        self.assertEqual(json.loads(jsonExport), json.loads(expected))
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
