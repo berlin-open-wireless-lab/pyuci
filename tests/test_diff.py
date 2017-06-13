@@ -29,6 +29,11 @@ class TestSetup(unittest.TestCase):
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
 
+        result.apply(self.confa)
+        self.assertEqual(self.confa, self.confb)
+        result.revert(self.confa)
+        self.assertEqual(self.confa.diff(self.confb), result)
+
     def test_missing_package_in_oldconf(self):
         removed_key = list(self.confa.packages.keys())[0]
         self.confa.packages.pop(removed_key)
@@ -51,6 +56,11 @@ class TestSetup(unittest.TestCase):
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
 
+        result.apply(self.confa)
+        self.assertEqual(self.confa, self.confb)
+        result.revert(self.confa)
+        self.assertEqual(self.confa.diff(self.confb), result)
+
     def test_missing_package_in_newconf(self):
         removed_key = list(self.confa.packages.keys())[0]
         self.confb.packages.pop(removed_key)
@@ -72,6 +82,11 @@ class TestSetup(unittest.TestCase):
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
+
+        result.apply(self.confa)
+        self.assertEqual(self.confa, self.confb)
+        result.revert(self.confa)
+        self.assertEqual(self.confa.diff(self.confb), result)
 
     def test_missing_config_in_oldconf(self):
         removed_key = list(self.confa.packages.keys())[0]
@@ -96,6 +111,11 @@ class TestSetup(unittest.TestCase):
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
 
+        result.apply(self.confa)
+        self.assertEqual(self.confa, self.confb)
+        result.revert(self.confa)
+        self.assertEqual(self.confa.diff(self.confb), result)
+
     def test_missing_config_in_newconf(self):
         removed_key = list(self.confa.packages.keys())[0]
         removed_conf = list(self.confa.packages[removed_key].keys())[0]
@@ -118,6 +138,11 @@ class TestSetup(unittest.TestCase):
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
+
+        result.apply(self.confa)
+        self.assertEqual(self.confa, self.confb)
+        result.revert(self.confa)
+        self.assertEqual(self.confa.diff(self.confb), result)
 
     def test_missing_option_in_oldconf(self):
         removed_key = list(self.confa.packages.keys())[0]
@@ -146,6 +171,11 @@ class TestSetup(unittest.TestCase):
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
 
+        result.apply(self.confa)
+        self.assertEqual(self.confa, self.confb)
+        result.revert(self.confa)
+        self.assertEqual(self.confa.diff(self.confb), result)
+
     def test_missing_option_in_newconf(self):
         removed_key = list(self.confa.packages.keys())[0]
         removed_conf = list(self.confa.packages[removed_key].keys())[0]
@@ -172,6 +202,11 @@ class TestSetup(unittest.TestCase):
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
+
+        result.apply(self.confa)
+        self.assertEqual(self.confa, self.confb)
+        result.revert(self.confa)
+        self.assertEqual(self.confa.diff(self.confb), result)
 
     def test_changed_option_in_newconf(self):
         removed_key = list(self.confa.packages.keys())[0]
@@ -204,3 +239,8 @@ class TestSetup(unittest.TestCase):
         importTest = Diff()
         importTest.importJson(jsonExport)
         self.assertEqual(importTest, result)
+
+        result.apply(self.confa)
+        self.assertEqual(self.confa, self.confb)
+        result.revert(self.confa)
+        self.assertEqual(self.confa.diff(self.confb), result)

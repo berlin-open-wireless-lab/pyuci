@@ -168,6 +168,52 @@ class Diff(dict):
             if not (option_key in newOptions.keys()):
                 self['oldOptions'][indexTuple] = option_value
 
+    def apply(self, toUci):
+        """ applys a diff to a Uci-Config """
+        for packageName, package in self['newpackages'].items():
+            toUci.add_package(packageName, package)
+
+        for configIndex, config in self['newconfigs'].items():
+            toUci.add_config(configIndex[0], config)
+
+        for packageName, package in self['oldpackages'].items():
+            toUci.del_package(packageName)
+
+        for configIndex, config in self['oldconfigs'].items():
+            toUci.del_config(configIndex[0], config)
+
+        for optIndex, opt in self['newOptions'].items():
+            toUci.packages[optIndex[0]][optIndex[1]].set_option(optIndex[2], opt)
+
+        for optIndex, opt in self['oldOptions'].items():
+            toUci.packages[optIndex[0]][optIndex[1]].remove_option(optIndex[2])
+
+        for optIndex, opt in self['chaOptions'].items():
+            toUci.packages[optIndex[0]][optIndex[1]].set_option(optIndex[2], opt[1])
+
+    def revert(self, toUci):
+        """ reverts a diff from a Uci-Config """
+        for packageName, package in self['newpackages'].items():
+            toUci.del_package(packageName)
+
+        for configIndex, config in self['newconfigs'].items():
+            toUci.del_config(configIndex[0], config)
+
+        for packageName, package in self['oldpackages'].items():
+            toUci.add_package(packageName, package)
+
+        for configIndex, config in self['oldconfigs'].items():
+            toUci.add_config(configIndex[0], config)
+
+        for optIndex, opt in self['newOptions'].items():
+            toUci.packages[optIndex[0]][optIndex[1]].remove_option(optIndex[2])
+
+        for optIndex, opt in self['oldOptions'].items():
+            toUci.packages[optIndex[0]][optIndex[1]].set_option(optIndex[2], opt)
+
+        for optIndex, opt in self['chaOptions'].items():
+            toUci.packages[optIndex[0]][optIndex[1]].set_option(optIndex[2], opt[0])
+
 class Config(object):
     def __init__(self, uci_type, name, anon):
         self.uci_type = uci_type
@@ -198,9 +244,6 @@ class Config(object):
             return
 
     def set_option(self, key, value):
-        if key in self.keys:
-            if isinstance(self.keys[key], list):
-                raise UciWrongTypeError()
         self.keys[key] = value
 
     def remove_option(self, key):
@@ -259,6 +302,9 @@ class Package(dict):
     def add_config(self, config):
         self[config.name] = config
 
+    def del_config(self, config):
+        self.pop(config.name)
+
     def add_config_json(self, config):
         cur_config = Config(config.pop('.type'), config.pop('.name'), config.pop(".anonymous"))
         cur_config.keys = config
@@ -289,9 +335,12 @@ class Uci(object):
     def __init__(self):
         self.packages = {}
 
-    def add_package(self, package_name):
+    def add_package(self, package_name, package=None):
         if package_name not in self.packages:
-            self.packages[package_name] = Package(package_name)
+            if not package:
+                self.packages[package_name] = Package(package_name)
+            else:
+                self.packages[package_name] = package
         return self.packages[package_name]
 
     def add_config(self, package_name, config):
@@ -301,8 +350,15 @@ class Uci(object):
             self.packages[package_name] = Package()
         self.packages[package_name].add_config(config)
 
-    def del_config(self, config):
-        pass
+    def del_config(self, package_name, config):
+        if package_name not in self.packages:
+            raise RuntimeError()
+        self.packages[package_name].del_config(config)
+
+    def del_package(self, package_name):
+        if package_name not in self.packages:
+            raise RuntimeError()
+        self.packages.pop(package_name)
 
     def del_path(self, path):
         pass
@@ -339,6 +395,9 @@ class Uci(object):
                 export[packagename]['values'][config.name] =\
                     config.export_dict(forjson=True)
         return json.dumps(export)
+
+    def __eq__(self, other):
+        return self.packages == other.packages
 
 
 class UciConfig(object):
